@@ -2,12 +2,13 @@
 
 namespace Octopuce\Acme;
 
+use Pimple\Container;
 use Octopuce\Acme\Exception\ApiCallErrorException;
 use Octopuce\Acme\Exception\ApiBadResponseException;
 use Octopuce\Acme\Exception\AccountNotFoundException;
 use Symfony\Component\Finder\Finder;
 
-class Client extends \Pimple implements ClientInterface
+class Client extends Container implements ClientInterface
 {
     /**
      * User agent string
@@ -54,9 +55,12 @@ class Client extends \Pimple implements ClientInterface
      */
     public function __construct(array $values = array())
     {
+        // Must construct parent class now to have factories & protected available
+        parent::__construct();
+
         $this->defaultValues['params']['storage']['filesystem'] = __DIR__.'/../../../var';
 
-        $values['storage'] = $this->share(function ($c) {
+        $values['storage'] = function ($c) {
 
             $storageConfig = $c['params']['storage'];
 
@@ -73,52 +77,54 @@ class Client extends \Pimple implements ClientInterface
             ));
 
             return $factory->create($storageConfig['type']);
-        });
-
-        $values['rsa'] = function () {
-            return new \phpseclib\Crypt\RSA;
         };
 
-        $values['ssl'] = $this->share(function ($c) {
-            return new Ssl\PhpSecLib($c->raw('rsa'));
+        $values['rsa'] = $this->factory(function () {
+            return new \phpseclib\Crypt\RSA;
         });
 
-        $values['http-client'] = $this->share(function ($c) {
+        $values['ssl'] = function ($c) {
+            return new Ssl\PhpSecLib($c->raw('rsa'));
+        };
+
+        $values['http-client'] = function ($c) {
             return new Http\GuzzleClient(
                 new \Guzzle\Http\Client,
                 $c->raw('rsa'),
                 $c['storage']
             );
-        });
-
-        $values['certificate'] = $this->share(function ($c) {
-            return new Certificate($c['storage'], $c['http-client'], $c['ssl']);
-        });
-
-        $values['account'] = $this->share(function ($c) {
-            return new Account($c['storage'], $c['http-client'], $c['ssl']);
-        });
-
-        $values['ownership'] = function ($c) {
-            return new Ownership($c['storage'], $c['http-client'], $c['ssl']);
         };
 
-        $values['challenge-solver-http'] = $this->share(function ($c) {
+        $values['certificate'] = function ($c) {
+            return new Certificate($c['storage'], $c['http-client'], $c['ssl']);
+        };
+
+        $values['account'] = function ($c) {
+            return new Account($c['storage'], $c['http-client'], $c['ssl']);
+        };
+
+        $values['ownership'] = $this->factory(function ($c) {
+            return new Ownership($c['storage'], $c['http-client'], $c['ssl']);
+        });
+
+        $values['challenge-solver-http'] = function ($c) {
             return new \Octopuce\Acme\ChallengeSolver\Http($c['params']['challenge']['config']);
-        });
+        };
         /*
-        $values['challenge-solver-dns'] = $this->share(function () {
+        $values['challenge-solver-dns'] = function () {
             return new Octopuce\Acme\ChallengeSolver\Dns;
-        });
-        $values['challenge-solver-dvsni'] = $this->share(function () {
+        };
+        $values['challenge-solver-dvsni'] = function () {
             return new Octopuce\Acme\ChallengeSolver\DvSni;
-        });
+        };
         */
 
         // Override default values with provided config
         $values = array_replace_recursive($this->defaultValues, $values);
 
-        parent::__construct($values);
+        foreach ($values as $key => $value) {
+            $this->offsetSet($key, $value);
+        }
     }
 
     /**

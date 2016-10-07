@@ -17,14 +17,14 @@
   ],
   "require": {
     "php": ">=5.3.9",
-    "pimple/pimple": "1.1.1",
-    "doctrine/dbal": "2.5.2",
+    "pimple/pimple": "~3.0",
+    "doctrine/dbal": "2.5",
     "gree/jose": ">=2.0.0",
     "phpseclib/phpseclib": "^2.0",
-    "guzzlehttp/guzzle": "3.8.1",
+    "guzzlehttp/guzzle": "~3.8",
     "psr/log": "~1.0",
-    "symfony/finder": "2.8.2",
-    "symfony/console": "2.7.9"
+    "symfony/finder": "~2.8",
+    "symfony/console": "~2.7"
   },
   "require-dev": {
     "phpunit/phpunit": "4.8.*"
