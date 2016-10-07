@@ -57,19 +57,22 @@ class Client extends \Pimple implements ClientInterface
         $this->defaultValues['params']['storage']['filesystem'] = __DIR__.'/../../../var';
 
         $values['storage'] = $this->share(function ($c) {
+
+            $storageConfig = $c['params']['storage'];
+
             $factory = new Storage\Factory(array(
-                'filesystem' => function () use ($c) {
-                    return new Storage\FileSystem($c['params']['storage']['filesystem'], new Finder);
+                'filesystem' => function () use ($storageConfig) {
+                    return new Storage\FileSystem($storageConfig['filesystem'], new Finder);
                 },
-                'database' => function () use ($c) {
+                'database' => function () use ($storageConfig) {
                     return new Storage\DoctrineDbal(
-                        $c['params']['storage']['database']['dsn'],
-                        $c['params']['storage']['database']['table_prefix']
+                        $storageConfig['database']['dsn'],
+                        $storageConfig['database']['table_prefix']
                     );
                 },
             ));
 
-            return $factory->create($c['params']['storage']['type']);
+            return $factory->create($storageConfig['type']);
         });
 
         $values['rsa'] = function () {
