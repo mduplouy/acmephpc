@@ -10,7 +10,7 @@ interface CertificateInterface
      * @param string $fqdn      The fully qualified domain name
      * @param array  $altNames  Alternative names
      *
-     * @return void
+     * @return self
      */
     public function sign($fqdn, array $altNames = array());
 
@@ -19,16 +19,32 @@ interface CertificateInterface
      *
      * @param string $fqdn The fully qualified domain name
      *
-     * @return void
+     * @return self
      */
     public function revoke($fqdn);
 
     /**
-     * Update an existing certificate
+     * Renew certificate for given fqdn
      *
      * @param string $fqdn The fully qualified domain name
      *
-     * @return void
+     * @return self
      */
-    public function update($fqdn);
+    public function renew($fqdn);
+
+    /**
+     * Find a certificate by domain name
+     *
+     * @param string $fqdn
+     *
+     * @return self
+     */
+    public function findByDomainName($fqdn);
+
+    /**
+     * Return the raw content of current certificate
+     *
+     * @return string
+     */
+    public function __toString();
 }

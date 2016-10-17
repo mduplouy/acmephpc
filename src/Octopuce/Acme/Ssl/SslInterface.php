@@ -8,6 +8,8 @@
 
 namespace Octopuce\Acme\Ssl;
 
+use Octopuce\Acme\CertificateInterface;
+
 /**
  * Acme SSL interface
  * @author benjamin
@@ -49,4 +51,22 @@ interface SslInterface
      * @return string
      */
     public function getPublicKeyThumbprint($publicKey);
+
+    /**
+     * Load a certificate
+     *
+     * @param CertificateInterface $certificate
+     *
+     * @return self
+     */
+    public function loadCertificate(CertificateInterface $certificate);
+
+    /**
+     * Get the certificate expiration timestamp
+     *
+     * @param CertificateInterface $certificate
+     *
+     * @return int
+     */
+    public function getCertificateExpirationDate();
 }

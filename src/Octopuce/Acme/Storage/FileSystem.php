@@ -19,13 +19,13 @@ class FileSystem implements StorageInterface
      * Target base dir
      * @var string
      */
-    private $baseDir;
+    protected $baseDir;
 
     /**
      * Finder instance
      * @var Finder
      */
-    private $finder;
+    protected $finder;
 
     /**
      * Constructor
@@ -220,7 +220,7 @@ class FileSystem implements StorageInterface
      *
      * @return mixed
      */
-    private function read($file)
+    protected function read($file)
     {
         $output = array();
         if (file_exists($file)) {
@@ -240,7 +240,7 @@ class FileSystem implements StorageInterface
      *
      * @throws \RuntimeException
      */
-    private function write($file, $content)
+    protected function write($file, $content)
     {
         $dir = dirname($file);
         if (!is_dir($dir)) {

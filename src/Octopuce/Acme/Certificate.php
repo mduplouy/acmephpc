@@ -20,20 +20,19 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
     private $altNames = array();
 
     /**
+     * Expiration timestamp
+     * @var int
+     */
+    private $expireAt;
+
+    /**
      * Certificate string
      * @var string
      */
     private $certificate;
 
     /**
-     * Sign a new certificate for a given fqdn and store it
-     *
-     * @param string $fqdn
-     * @param array  $altnames
-     *
-     * @return $this
-     *
-     * @throws ApiBadResponseException
+     * @inheritDoc
      */
     public function sign($fqdn, array $altNames = array())
     {
@@ -55,11 +54,13 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
         // Call API and save
         try {
 
-            $this->certificate = $this->client->signCertificate(
+            $this->certificate = $this->httpClient->signCertificate(
                 \JOSE_URLSafeBase64::encode($csr),
                 $this->getPrivateKey(),
                 $this->getPublicKey()
             );
+
+            $this->expireAt = $this->ssl->loadCertificate($this)->getCertificateExpirationDate();
 
             $this->save('certificate');
 
@@ -73,11 +74,7 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
     }
 
     /**
-     * Find a certificate by domain name
-     *
-     * @param string $fqdn
-     *
-     * @return $this
+     * @inheritDoc
      *
      * @throws CertificateNotFoundException
      */
@@ -98,17 +95,13 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
     }
 
     /**
-     * Revoke a certificate
-     *
-     * @param string $fqdn
-     *
-     * @return $this
+     * @inheritDoc
      */
     public function revoke($fqdn)
     {
         $this->findByDomainName($fqdn);
 
-        $response = $this->client->revokeCertificate(
+        $response = $this->httpClient->revokeCertificate(
             \JOSE_URLSafeBase64::encode($this->certificate),
             $this->getPrivateKey(),
             $this->getPublicKey()
@@ -116,14 +109,25 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
 
         $this->storage->delete($this, 'certificate');
 
-        print_r($response);
-
         return $this;
     }
 
-    public function update($fqdn)
+    /**
+     * @inheritDoc
+     */
+    public function renew($fqdn)
     {
+        $this->findByDomainName($fqdn);
 
+        $this->httpClient->revokeCertificate(
+            \JOSE_URLSafeBase64::encode($this->certificate),
+            $this->getPrivateKey(),
+            $this->getPublicKey()
+        );
+
+        $this->sign($fqdn, $this->altNames);
+
+        return $this;
     }
 
     /**
@@ -154,14 +158,13 @@ class Certificate extends AbstractEntity implements CertificateInterface, Storab
             'id'          => $this->id,
             'fqdn'        => $this->fqdn,
             'altNames'    => $this->altNames,
+            'expireAt'    => $this->expireAt,
             'certificate' => base64_encode($this->certificate),
         );
     }
 
     /**
-     * Get certificate content
-     *
-     * @return string
+     * @inheritDoc
      */
     public function __toString()
     {

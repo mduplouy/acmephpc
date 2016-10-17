@@ -21,7 +21,7 @@ abstract class AbstractEntity
      * HTTP Client interface instance
      * @var HttpClientInterface
      */
-    protected $client;
+    protected $httpClient;
 
     /**
      * SSL interface instance
@@ -63,17 +63,16 @@ abstract class AbstractEntity
      * Constructor
      *
      * @param StorageInterface    $storage
-     * @param HttpClientInterface $client
+     * @param HttpClientInterface $httpClient
      * @param SslInterface        $ssl
      */
-    public function __construct(StorageInterface $storage, HttpClientInterface $client, SslInterface $ssl)
+    public function __construct(StorageInterface $storage, HttpClientInterface $httpClient, SslInterface $ssl)
     {
-        $this->storage  = $storage;
-        $this->client   = $client;
-        $this->ssl = $ssl;
-
-        $this->created  = new \DateTime;
-        $this->modified = new \DateTime;
+        $this->storage      = $storage;
+        $this->httpClient   = $httpClient;
+        $this->ssl          = $ssl;
+        $this->created      = new \DateTime;
+        $this->modified     = new \DateTime;
     }
 
     /**

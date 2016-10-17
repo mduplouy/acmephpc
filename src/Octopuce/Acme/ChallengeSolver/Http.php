@@ -72,15 +72,11 @@ class Http implements SolverInterface
      * @param string $key
      *
      * @return array
-     *
-     * @throws \RuntimeException
      */
     public function getChallengeInfo($fqdn, $token, $key)
     {
-        $targetUrl = 'http://'.$fqdn.self::FILE_PATH.$token;
-
         return array(
-            'info' => sprintf('Put the keyAuthorization value in a file accessible at url %s', $targetUrl),
+            'info' => 'http://'.$fqdn.self::FILE_PATH.$token,
             'keyAuthorization' => $token.'.'.$key,
         );
     }
@@ -105,8 +101,12 @@ class Http implements SolverInterface
     /**
      * @inheritDoc
      */
-    public function getType()
+    public function getType($forApiCall = false)
     {
+        if ($forApiCall) {
+            return 'simpleHttp';
+        }
+
         return 'http-01';
     }
 }

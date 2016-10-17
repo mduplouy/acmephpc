@@ -8,8 +8,9 @@
 
 namespace Octopuce\Acme\Ssl;
 
-use \phpseclib\Crypt\RSA;
-use \phpseclib\File\X509;
+use phpseclib\Crypt\RSA;
+use phpseclib\File\X509;
+use Octopuce\Acme\CertificateInterface;
 
 /**
  * PhpSecLib adapter
@@ -102,5 +103,30 @@ class Phpseclib implements SslInterface
         $rsa->loadKey($publicKey);
 
         return \JOSE_JWK::encode($rsa)->thumbprint();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function loadCertificate(CertificateInterface $certificate)
+    {
+        $cert = new \phpseclib\File\X509;
+        $this->currentCert = $cert->loadX509($certificate->__toString(), \phpseclib\File\X509::FORMAT_DER);
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     *
+     * @throws \LogicException
+     */
+    public function getCertificateExpirationDate()
+    {
+        if (null === $this->currentCert) {
+            throw new \LogicException("You must load a certificate before getting its expiration date");
+        }
+
+        return strtotime($this->currentCert['tbsCertificate']['validity']['notAfter']['utcTime']);
     }
 }

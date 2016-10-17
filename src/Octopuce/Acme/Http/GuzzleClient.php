@@ -10,6 +10,7 @@ use Octopuce\Acme\Exception\ApiCallErrorException;
 use Octopuce\Acme\Exception\ApiBadResponseException;
 use Octopuce\Acme\Exception\NoContractInResponseException;
 use Octopuce\Acme\Exception\CertificateNotYetAvailableException;
+use Octopuce\Acme\Exception\ChallengeFailException;
 
 class GuzzleClient implements HttpClientInterface
 {
@@ -100,6 +101,8 @@ class GuzzleClient implements HttpClientInterface
 
     /**
      * {@inheritDoc}
+     *
+     * @throws ChallengeFailException
      */
     public function challengeOwnership($url, $type, $keyAuth, $privateKey, $publicKey)
     {
@@ -109,7 +112,12 @@ class GuzzleClient implements HttpClientInterface
             'keyAuthorization' => $keyAuth,
         );
 
-        return $this->sendPostRequest($url, $params, $privateKey, $publicKey);
+        $response = $this->sendPostRequest($url, $params, $privateKey, $publicKey);
+        $response = json_decode($response->getBody(true), true);
+
+        if (!array_key_exists('status', $response) || $response['status'] != 'valid') {
+            throw new ChallengeFailException('Unable to solve challenge');
+        }
     }
 
     /**
@@ -201,7 +209,7 @@ class GuzzleClient implements HttpClientInterface
             $params['contact'][] = 'tel:'.$tel;
         }
 
-        $response = $this->sendPostRequest('https://acme-staging.api.letsencrypt.org/recover-reg', $params, $privateKey, $publicKey);
+        $response = $this->sendPostRequest($this->getUrl('recover-reg'), $params, $privateKey, $publicKey);
 
     }
 
@@ -294,16 +302,16 @@ class GuzzleClient implements HttpClientInterface
 
         } catch (\Exception $e) {
 
-            $error = $e->getMessage();
+            $msg = $e->getMessage();
 
             if ($e instanceof \Guzzle\Http\Exception\HttpException) {
                 $errorDetails = json_decode($e->getResponse()->getBody(true), true);
-                $error .= "\n[detail] ".$errorDetails['detail'];
+                $msg = $errorDetails['detail'];
 
                 $this->processResponse($e->getResponse());
             }
 
-            throw new ApiCallErrorException($error, 2);
+            throw new ApiCallErrorException($msg, 2, $e);
         }
     }
 

@@ -22,7 +22,7 @@ interface SolverInterface
      *
      * @return string
      */
-    public function getType();
+    public function getType($forApiCall = false);
 
     /**
      * Get challenge info as text

@@ -61,7 +61,7 @@ class Ownership extends AbstractEntity implements StorableInterface, OwnershipIn
     {
         $this->checkFqdn($fqdn);
 
-        $response = $this->client->registerNewOwnership(
+        $response = $this->httpClient->registerNewOwnership(
             $fqdn,
             $this->type,
             $this->getPrivateKey(),
@@ -134,23 +134,23 @@ class Ownership extends AbstractEntity implements StorableInterface, OwnershipIn
      *
      * @param SolverInterface $solver
      * @param string          $fqdn
+     * @param bool            $doSolverAction
      *
      * @return $this
      *
-     * @throws \UnexpectedValueException
      * @throws ChallengeFailException
      */
-    public function challenge(SolverInterface $solver, $fqdn)
+    public function challenge(SolverInterface $solver, $fqdn, $doSolverAction = true)
     {
         $challengeData = $this->getChallengeData($solver, $fqdn);
 
-        if (!$solver->solve($this->challengeToken, $this->challengeThumbprint)) {
+        if ($doSolverAction && !$solver->solve($this->challengeToken, $this->challengeThumbprint)) {
             throw new ChallengeFailException('Unable to solve challenge');
         }
 
-        $this->client->challengeOwnership(
+        $this->httpClient->challengeOwnership(
             $this->challengeUrl,
-            $solver->getType(),
+            $solver->getType(true),
             $this->challengeToken.'.'.$this->challengeThumbprint,
             $this->getPrivateKey(),
             $this->getPublicKey()

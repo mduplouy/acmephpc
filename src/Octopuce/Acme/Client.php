@@ -38,6 +38,7 @@ class Client extends Container implements ClientInterface
                 'type' => 'http',
                 'config' => array(
                     'doc-root' => '',
+                    'target-path' => '/tmp/',
                 ),
             ),
             'account' => null,
@@ -60,7 +61,7 @@ class Client extends Container implements ClientInterface
 
         $this->defaultValues['params']['storage']['filesystem'] = __DIR__.'/../../../var';
 
-        $values['storage'] = function ($c) {
+        $this->defaultValues['storage'] = function ($c) {
 
             $storageConfig = $c['params']['storage'];
 
@@ -79,15 +80,15 @@ class Client extends Container implements ClientInterface
             return $factory->create($storageConfig['type']);
         };
 
-        $values['rsa'] = $this->factory(function () {
+        $this->defaultValues['rsa'] = $this->factory(function () {
             return new \phpseclib\Crypt\RSA;
         });
 
-        $values['ssl'] = function ($c) {
+        $this->defaultValues['ssl'] = function ($c) {
             return new Ssl\PhpSecLib($c->raw('rsa'));
         };
 
-        $values['http-client'] = function ($c) {
+        $this->defaultValues['http-client'] = function ($c) {
             return new Http\GuzzleClient(
                 new \Guzzle\Http\Client,
                 $c->raw('rsa'),
@@ -95,25 +96,26 @@ class Client extends Container implements ClientInterface
             );
         };
 
-        $values['certificate'] = function ($c) {
+        $this->defaultValues['certificate'] = function ($c) {
             return new Certificate($c['storage'], $c['http-client'], $c['ssl']);
         };
 
-        $values['account'] = function ($c) {
+        $this->defaultValues['account'] = function ($c) {
             return new Account($c['storage'], $c['http-client'], $c['ssl']);
         };
 
-        $values['ownership'] = $this->factory(function ($c) {
+        $this->defaultValues['ownership'] = $this->factory(function ($c) {
             return new Ownership($c['storage'], $c['http-client'], $c['ssl']);
         });
 
-        $values['challenge-solver-http'] = function ($c) {
+        $this->defaultValues['challenge-solver-http'] = function ($c) {
             return new \Octopuce\Acme\ChallengeSolver\Http($c['params']['challenge']['config']);
         };
-        /*
-        $values['challenge-solver-dns'] = function () {
-            return new Octopuce\Acme\ChallengeSolver\Dns;
+        $this->defaultValues['challenge-solver-dns'] = function ($c) {
+            return new \Octopuce\Acme\ChallengeSolver\Dns($c['params']['challenge']['config']);
         };
+
+        /*
         $values['challenge-solver-dvsni'] = function () {
             return new Octopuce\Acme\ChallengeSolver\DvSni;
         };
@@ -273,12 +275,13 @@ class Client extends Container implements ClientInterface
      *
      * @param string $fqdn                   FQDN to challenge
      * @param string $overrideChallengeType  Force this challenge type (use config if empty)
+     * @param bool   $doSolverAction         Run the solver action if exists ? (ie generate file for http challenge)
      *
      * @return $this
      *
      * @throws \InvalidArgumentException
      */
-    public function challengeOwnership($fqdn, $overrideChallengeType = null)
+    public function challengeOwnership($fqdn, $overrideChallengeType = null, $doSolverAction = true)
     {
         $challengeSolver = $this->getChallengeSolver($overrideChallengeType);
 
@@ -290,7 +293,8 @@ class Client extends Container implements ClientInterface
             ->setKeys($account->getPrivateKey(), $account->getPublicKey())
             ->challenge(
                 $challengeSolver,
-                $fqdn
+                $fqdn,
+                $doSolverAction
             );
 
         return $this;
@@ -378,7 +382,15 @@ class Client extends Container implements ClientInterface
      */
     public function renewCertificate($fqdn)
     {
+        $this->init();
 
+        $account = $this['account'];
+
+        $this['certificate']
+            ->setKeys($account->getPrivateKey(), $account->getPublicKey())
+            ->renew($fqdn);
+
+        return (string) $this['certificate'];
     }
 
 }

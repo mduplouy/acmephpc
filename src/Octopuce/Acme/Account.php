@@ -74,7 +74,7 @@ class Account extends AbstractEntity implements StorableInterface, AccountInterf
         $this->id = $this->save('account');
 
         // Call api to register
-        $response = $this->client->registerNewAccount($mailto, $tel, $this->getPrivateKey(), $this->getPublicKey());
+        $response = $this->httpClient->registerNewAccount($mailto, $tel, $this->getPrivateKey(), $this->getPublicKey());
 
         $headers = $response->getHeaders();
         if (!$headers->offsetExists('location')) {
@@ -87,7 +87,7 @@ class Account extends AbstractEntity implements StorableInterface, AccountInterf
         $this->save('account');
 
         // Call api to try to sign any contract
-        $this->client->signContract($response, $mailto, $tel, $this->getPrivateKey(), $this->getPublicKey());
+        $this->httpClient->signContract($response, $mailto, $tel, $this->getPrivateKey(), $this->getPublicKey());
 
         // Save to contracted status
         $this->status = self::STATUS_CONTRACTED;
@@ -132,9 +132,7 @@ class Account extends AbstractEntity implements StorableInterface, AccountInterf
      */
     public function recover($id)
     {
-
-        $this->client->recoverAccount($id);
-
+        $this->httpClient->recoverAccount($id);
     }
 
     /**
